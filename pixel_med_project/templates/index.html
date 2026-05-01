@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PULSE - Emergency Triage Risk Predictor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* Language Switcher */
+        .language-switcher {
+            text-align: right;
+            margin-bottom: 15px;
+        }
+        
+        .lang-btn {
+            background: white;
+            border: 2px solid #3498db;
+            padding: 8px 16px;
+            margin: 0 5px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            color: #3498db;
+        }
+        
+        .lang-btn.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .lang-btn:hover {
+            background: #3498db;
+            color: white;
+        }
+        
+        /* Header with Logo */
+        .header {
+            background: white;
+            border-radius: 20px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .logo-placeholder {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+        }
+        
+        .logo-placeholder img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .title-area {
+            flex: 1;
+        }
+        
+        .title-area h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .title-area p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .row .form-group {
+            flex: 1;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .result {
+            display: none;
+        }
+        
+        .risk-level {
+            font-size: 28px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .confidence-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 30px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .probabilities {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .prob-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            background: #f5f5f5;
+        }
+        
+        .recommendation {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: left;
+            border-left: 4px solid #3498db;
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .feature-impact {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .impact-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .impact-positive {
+            color: #e74c3c;
+        }
+        
+        .impact-negative {
+            color: #27ae60;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* History Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 50px auto;
+            max-width: 1000px;
+            border-radius: 20px;
+            padding: 25px;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .close-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        .clear-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #3498db;
+            color: white;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        @media (max-width: 600px) {
+            .row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .probabilities {
+                flex-direction: column;
+            }
+            table {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Language Switcher -->
+        <div class="language-switcher">
+            <button class="lang-btn active" onclick="switchLanguage('en')">🇬🇧 English</button>
+            <button class="lang-btn" onclick="switchLanguage('ar')">🇸🇦 العربية</button>
+            <button class="lang-btn" onclick="switchLanguage('fr')">🇫🇷 Français</button>
+            <button class="lang-btn" onclick="showHistory()">📋 History</button>
+        </div>
+        
+        <!-- Header with Logo -->
+        <div class="header">
+            <div class="logo-placeholder" id="logoPlaceholder">
+                <!-- Replace this with your logo image 
+                <span>💓</span>-->
+                <!-- To add your logo, replace the line above with:-->
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"> 
+            </div>
+            <div class="title-area">
+                <h1 id="projectName">PULSE</h1>
+                <p id="subtitle">AI-Powered Emergency Triage Risk Predictor</p>
+            </div>
+        </div>
+        
+        <!-- Input Form Card -->
+        <div class="card">
+            <form id="predictionForm">
+                <div class="row">
+                    <div class="form-group">
+                        <label id="labelAge">Age (years)</label>
+                        <input type="number" id="age" required step="1">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelHeartRate">Heart Rate (bpm)</label>
+                        <input type="number" id="heartRate" required step="1">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label id="labelSystolicBP">Systolic BP (mmHg)</label>
+                        <input type="number" id="systolicBp" required step="1">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelOxygen">Oxygen Saturation (%)</label>
+                        <input type="number" id="oxygen" required step="1">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label id="labelTemp">Temperature (°C)</label>
+                        <input type="number" id="temperature" required step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelPain">Pain Level (0-10)</label>
+                        <input type="number" id="painLevel" required min="0" max="10" step="1">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group">
+                        <label id="labelChronic">Chronic Diseases Count</label>
+                        <input type="number" id="chronicDiseases" required min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label id="labelArrival">Arrival Mode</label>
+                        <select id="arrivalMode">
+                            <option value="0" id="optionWalk">Walk-in</option>
+                            <option value="1" id="optionWheel">Wheelchair</option>
+                            <option value="2" id="optionAmbulance">Ambulance</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" id="predictBtn">🔍 PREDICT RISK</button>
+            </form>
+            
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p id="analyzingText">Analyzing patient data...</p>
+            </div>
+        </div>
+        
+        <!-- Results Card -->
+        <div class="card result" id="resultCard">
+            <h2 id="resultTitle">📊 Prediction Result</h2>
+            <div class="risk-level" id="riskLevel"></div>
+            <div class="confidence-bar">
+                <div class="confidence-fill" id="confidenceFill"></div>
+            </div>
+            <div class="probabilities" id="probabilities"></div>
+            <div class="recommendation" id="recommendation"></div>
+            
+            <div class="explanation">
+                <h3 id="explanationTitle">🔍 Why this prediction?</h3>
+                <div class="feature-impact" id="featureImpact"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 Prediction History</h2>
+                <button class="close-btn" onclick="closeHistory()">Close</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Time</th>
+                            <th>Age</th>
+                            <th>Heart Rate</th>
+                            <th>BP</th>
+                            <th>Oxygen</th>
+                            <th>Risk</th>
+                            <th>Confidence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="8" style="text-align:center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="clear-btn" onclick="clearHistory()">🗑️ Clear All History</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Language translations
+        const translations = {
+            en: {
+                projectName: "PULSE",
+                subtitle: "AI-Powered Emergency Triage Risk Predictor",
+                labelAge: "Age (years)",
+                labelHeartRate: "Heart Rate (bpm)",
+                labelSystolicBP: "Systolic BP (mmHg)",
+                labelOxygen: "Oxygen Saturation (%)",
+                labelTemp: "Temperature (°C)",
+                labelPain: "Pain Level (0-10)",
+                labelChronic: "Chronic Diseases Count",
+                labelArrival: "Arrival Mode",
+                optionWalk: "Walk-in",
+                optionWheel: "Wheelchair",
+                optionAmbulance: "Ambulance",
+                predictBtn: "🔍 PREDICT RISK",
+                analyzing: "Analyzing patient data...",
+                resultTitle: "📊 Prediction Result",
+                explanationTitle: "🔍 Why this prediction?",
+                low: "Low",
+                medium: "Medium",
+                high: "High",
+                critical: "Critical"
+            },
+            ar: {
+                projectName: "PULSE",
+                subtitle: "نظام ذكاء اصطناعي للتنبؤ بمستوى الطوارئ",
+                labelAge: "العمر (سنوات)",
+                labelHeartRate: "نبضات القلب (ن/د)",
+                labelSystolicBP: "ضغط الدم الانقباضي (مم زئبق)",
+                labelOxygen: "تشبع الأكسجين (%)",
+                labelTemp: "درجة الحرارة (مئوية)",
+                labelPain: "مستوى الألم (0-10)",
+                labelChronic: "عدد الأمراض المزمنة",
+                labelArrival: "طريقة الوصول",
+                optionWalk: "مشى بنفسه",
+                optionWheel: "كرسي متحرك",
+                optionAmbulance: "سيارة إسعاف",
+                predictBtn: "🔍 توقع الخطر",
+                analyzing: "جاري تحليل بيانات المريض...",
+                resultTitle: "📊 نتيجة التوقع",
+                explanationTitle: "🔍 لماذا هذا التوقع؟",
+                low: "منخفض",
+                medium: "متوسط",
+                high: "مرتفع",
+                critical: "حرج"
+            },
+            fr: {
+                projectName: "PULSE",
+                subtitle: "Prédiction IA du Niveau d'Urgence",
+                labelAge: "Âge (années)",
+                labelHeartRate: "Fréquence cardiaque (bpm)",
+                labelSystolicBP: "Pression systolique (mmHg)",
+                labelOxygen: "Saturation en oxygène (%)",
+                labelTemp: "Température (°C)",
+                labelPain: "Niveau de douleur (0-10)",
+                labelChronic: "Nombre de maladies chroniques",
+                labelArrival: "Mode d'arrivée",
+                optionWalk: "À pied",
+                optionWheel: "Fauteuil roulant",
+                optionAmbulance: "Ambulance",
+                predictBtn: "🔍 PRÉDIRE LE RISQUE",
+                analyzing: "Analyse des données du patient...",
+                resultTitle: "📊 Résultat de la prédiction",
+                explanationTitle: "🔍 Pourquoi cette prédiction?",
+                low: "Faible",
+                medium: "Moyen",
+                high: "Élevé",
+                critical: "Critique"
+            }
+        };
+        
+        let currentLang = 'en';
+        
+        function switchLanguage(lang) {
+            currentLang = lang;
+            
+            // Update active button style
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update all text elements
+            document.getElementById('projectName').innerText = translations[lang].projectName;
+            document.getElementById('subtitle').innerText = translations[lang].subtitle;
+            document.getElementById('labelAge').innerText = translations[lang].labelAge;
+            document.getElementById('labelHeartRate').innerText = translations[lang].labelHeartRate;
+            document.getElementById('labelSystolicBP').innerText = translations[lang].labelSystolicBP;
+            document.getElementById('labelOxygen').innerText = translations[lang].labelOxygen;
+            document.getElementById('labelTemp').innerText = translations[lang].labelTemp;
+            document.getElementById('labelPain').innerText = translations[lang].labelPain;
+            document.getElementById('labelChronic').innerText = translations[lang].labelChronic;
+            document.getElementById('labelArrival').innerText = translations[lang].labelArrival;
+            document.getElementById('optionWalk').innerText = translations[lang].optionWalk;
+            document.getElementById('optionWheel').innerText = translations[lang].optionWheel;
+            document.getElementById('optionAmbulance').innerText = translations[lang].optionAmbulance;
+            document.getElementById('predictBtn').innerHTML = translations[lang].predictBtn;
+            document.getElementById('analyzingText').innerText = translations[lang].analyzing;
+            document.getElementById('resultTitle').innerHTML = translations[lang].resultTitle;
+            document.getElementById('explanationTitle').innerHTML = translations[lang].explanationTitle;
+            
+            // Update direction for Arabic
+            if (lang === 'ar') {
+                document.body.style.direction = 'rtl';
+                document.querySelector('.language-switcher').style.textAlign = 'left';
+            } else {
+                document.body.style.direction = 'ltr';
+                document.querySelector('.language-switcher').style.textAlign = 'right';
+            }
+        }
+        
+        // Form submission
+        const form = document.getElementById('predictionForm');
+        const resultCard = document.getElementById('resultCard');
+        const loading = document.getElementById('loading');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            loading.style.display = 'block';
+            resultCard.style.display = 'none';
+            
+            const data = {
+                age: document.getElementById('age').value,
+                heart_rate: document.getElementById('heartRate').value,
+                systolic_bp: document.getElementById('systolicBp').value,
+                oxygen: document.getElementById('oxygen').value,
+                temperature: document.getElementById('temperature').value,
+                pain_level: document.getElementById('painLevel').value,
+                chronic_diseases: document.getElementById('chronicDiseases').value,
+                arrival_mode: document.getElementById('arrivalMode').value
+            };
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Get risk name in current language
+                    let riskName = '';
+                    if (currentLang === 'en') riskName = result.risk_name_en;
+                    else if (currentLang === 'ar') riskName = result.risk_name_ar;
+                    else riskName = result.risk_name_fr;
+                    
+                    document.getElementById('riskLevel').innerHTML = riskName;
+                    document.getElementById('riskLevel').style.background = result.color;
+                    document.getElementById('riskLevel').style.color = 'white';
+                    
+                    document.getElementById('confidenceFill').style.width = result.confidence + '%';
+                    document.getElementById('confidenceFill').innerHTML = result.confidence + '%';
+                    document.getElementById('confidenceFill').style.background = result.color;
+                    
+                    const probLabels = translations[currentLang];
+                    document.getElementById('probabilities').innerHTML = `
+                        <div class="prob-item">${probLabels.low}<br><strong>${result.probabilities.low}%</strong></div>
+                        <div class="prob-item">${probLabels.medium}<br><strong>${result.probabilities.medium}%</strong></div>
+                        <div class="prob-item">${probLabels.high}<br><strong>${result.probabilities.high}%</strong></div>
+                        <div class="prob-item">${probLabels.critical}<br><strong>${result.probabilities.critical}%</strong></div>
+                    `;
+                    
+                    let recommendation = '';
+                    if (currentLang === 'en') recommendation = result.recommendation_en;
+                    else if (currentLang === 'ar') recommendation = result.recommendation_ar;
+                    else recommendation = result.recommendation_fr;
+                    
+                    document.getElementById('recommendation').innerHTML = `<strong>💊 Recommended Action:</strong><br>${recommendation}`;
+                    
+                    let impactHtml = '<p>Prediction complete. Check history for details.</p>';
+                    document.getElementById('featureImpact').innerHTML = impactHtml;
+                    
+                    resultCard.style.display = 'block';
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error connecting to server: ' + error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+        
+        // History functions
+        async function showHistory() {
+            const modal = document.getElementById('historyModal');
+            modal.style.display = 'block';
+            
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Loading...</td></tr>';
+            
+            try {
+                const response = await fetch('/history');
+                const data = await response.json();
+                
+                if (data.success && data.history.length > 0) {
+                    tbody.innerHTML = '';
+                    data.history.forEach(record => {
+                        const row = tbody.insertRow();
+                        // Color code risk level
+                        let riskColor = '';
+                        let riskText = record.risk_name;
+                        if (riskText === 'LOW') riskColor = '#2ecc71';
+                        else if (riskText === 'MEDIUM') riskColor = '#f39c12';
+                        else if (riskText === 'HIGH') riskColor = '#e74c3c';
+                        else riskColor = '#8e44ad';
+                        
+                        row.insertCell(0).innerHTML = record.id;
+                        row.insertCell(1).innerHTML = new Date(record.timestamp).toLocaleString();
+                        row.insertCell(2).innerHTML = record.age;
+                        row.insertCell(3).innerHTML = record.heart_rate;
+                        row.insertCell(4).innerHTML = record.systolic_bp;
+                        row.insertCell(5).innerHTML = record.oxygen;
+                        row.insertCell(6).innerHTML = `<span style="background:${riskColor}; color:white; padding:4px 10px; border-radius:10px;">${riskText}</span>`;
+                        row.insertCell(7).innerHTML = `${record.confidence}%`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">No predictions yet. Make a prediction first!</td></tr>';
+                }
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Error loading history</td></tr>';
+            }
+        }
+        
+        function closeHistory() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+        
+        async function clearHistory() {
+            if (confirm('Are you sure you want to delete ALL prediction history?')) {
+                try {
+                    const response = await fetch('/clear_history', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('History cleared successfully!');
+                        closeHistory();
+                    } else {
+                        alert('Error clearing history');
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
