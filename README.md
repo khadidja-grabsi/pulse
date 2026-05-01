@@ -38,17 +38,17 @@ cd PULSE
 ```
 
 ## 2. Install dependencies
-
+```bash
 pip install -r requirements.txt
-
+```
 ## 3. Train the model
-
+```bash
 python train_model.py
-
+```
 ## 4. Run the application
-
+```bash
 python api.py
-
+```
 ## 5. Open your browser
 
 Go to: http://localhost:5000
